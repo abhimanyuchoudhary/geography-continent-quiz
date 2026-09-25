@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2a9d8f" />
+  <title>Continent Quiz</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- START -->
+    <section id="screen-start" class="screen active">
+      <div class="hero">
+        <div class="hero-flags" aria-hidden="true">🌍 🗺️ 🧭</div>
+        <h1>Continent Quiz</h1>
+        <p class="tagline">Match countries and continents — fun for the whole family!</p>
+      </div>
+      <div class="how-to card">
+        <h2>How to play</h2>
+        <ol>
+          <li>Choose a difficulty and a round length</li>
+          <li>Answer mixed questions: country → continent, and continent → country</li>
+          <li>Review your answers, then save a score on this device</li>
+        </ol>
+        <p class="hint mode-note">Each round mixes both question types by default.</p>
+      </div>
+      <div class="card mode-picker">
+        <p id="mode-label" class="picker-label">Question mix</p>
+        <div class="diff-options" role="radiogroup" aria-labelledby="mode-label">
+          <label class="diff-option">
+            <input type="radio" name="mode-mix" value="mix" checked />
+            <span>Mix both</span>
+          </label>
+          <label class="diff-option">
+            <input type="radio" name="mode-mix" value="country-to-continent" />
+            <span>Country → continent</span>
+          </label>
+          <label class="diff-option">
+            <input type="radio" name="mode-mix" value="continent-to-country" />
+            <span>Continent → country</span>
+          </label>
+        </div>
+      </div>
+      <div class="card diff-picker">
+        <p id="diff-label" class="picker-label">Difficulty</p>
+        <div class="diff-options" role="radiogroup" aria-labelledby="diff-label" aria-describedby="diff-hint">
+          <label class="diff-option">
+            <input type="radio" name="difficulty" value="easy" checked />
+            <span>Tourist</span>
+          </label>
+          <label class="diff-option">
+            <input type="radio" name="difficulty" value="medium" />
+            <span>Globetrotter</span>
+          </label>
+          <label class="diff-option">
+            <input type="radio" name="difficulty" value="hard" />
+            <span>Cartographer</span>
+          </label>
+          <label class="diff-option">
+            <input type="radio" name="difficulty" value="random" />
+            <span>Random</span>
+          </label>
+        </div>
+        <p id="diff-hint" class="hint">Well-known countries and clearer continent choices.</p>
+      </div>
+      <div class="round-picker card">
+        <div class="round-row">
+          <label for="round-length">Round length</label>
+          <select id="round-length" aria-describedby="length-hint">
+            <option value="5">5 questions</option>
+            <option value="10" selected>10 questions</option>
+            <option value="15">15 questions</option>
+            <option value="20">20 questions</option>
+            <option value="40">40 questions</option>
+            <option value="50">50 questions</option>
+          </select>
+        </div>
+        <p id="length-hint" class="hint" hidden></p>
+      </div>
+      <button id="btn-play" type="button" class="btn btn-primary btn-lg">Play!</button>
+      <section class="leaderboard card" aria-labelledby="lb-start-heading">
+        <h2 id="lb-start-heading">Top scores</h2>
+        <p class="hint">Saved on this device only.</p>
+        <ol id="lb-start" class="lb-list"></ol>
+      </section>
+    </section>
+
+    <!-- QUESTION -->
+    <section id="screen-question" class="screen" hidden>
+      <header class="game-bar">
+        <div class="progress-wrap">
+          <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="stats">
+          <span id="q-progress">1 / 10</span>
+          <span id="hud-diff" class="stat-pill diff-pill">Tourist</span>
+          <span class="stat-pill">⭐ <span id="score">0</span></span>
+          <span class="stat-pill">🔥 <span id="streak">0</span></span>
+        </div>
+      </header>
+      <div class="question-card card">
+        <p id="q-type" class="q-type">Continent</p>
+        <div id="q-prompt" class="q-prompt"></div>
+      </div>
+      <div id="choices" class="choices" role="group" aria-label="Answer choices"></div>
+      <button id="btn-next" type="button" class="btn btn-primary btn-lg" hidden>Next →</button>
+    </section>
+
+    <!-- END -->
+    <section id="screen-end" class="screen" hidden>
+      <div class="end-hero card">
+        <div id="end-emoji" class="end-emoji" aria-hidden="true">🎉</div>
+        <h1>Round over!</h1>
+        <p id="end-message" class="tagline"></p>
+        <p class="final-score">
+          You got <strong id="final-correct">0</strong> / <strong id="final-total">0</strong>
+        </p>
+        <p class="best-streak">Best streak: <strong id="final-streak">0</strong> 🔥</p>
+        <p id="end-meta" class="end-meta"></p>
+        <p id="end-cap-note" class="hint" hidden></p>
+      </div>
+      <form id="save-form" class="card save-form">
+        <h2>Save your score</h2>
+        <label for="player-name">Display name</label>
+        <p class="hint save-hint">Up to 20 characters. Stored on this device only.</p>
+        <input id="player-name" name="player-name" type="text" maxlength="40" autocomplete="nickname" autocapitalize="words" enterkeyhint="done" required />
+        <p id="save-error" class="hint error" hidden></p>
+        <button id="btn-save" type="submit" class="btn btn-primary btn-lg">Save score</button>
+      </form>
+      <p id="save-done" class="card save-done" hidden></p>
+      <div class="end-actions">
+        <button id="btn-again" type="button" class="btn btn-primary btn-lg">Play again</button>
+        <button id="btn-home" type="button" class="btn btn-ghost">Back to start</button>
+      </div>
+      <section class="review card" aria-labelledby="review-heading">
+        <h2 id="review-heading">Review</h2>
+        <ol id="review-list" class="review-list"></ol>
+      </section>
+      <section class="leaderboard card" aria-labelledby="lb-end-heading">
+        <h2 id="lb-end-heading">Top scores</h2>
+        <p class="hint">Saved on this device only.</p>
+        <p id="lb-yours" class="hint" hidden></p>
+        <ol id="lb-end" class="lb-list"></ol>
+      </section>
+    </section>
+  </div>
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

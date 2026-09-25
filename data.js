@@ -1,0 +1,327 @@
+/** Embedded country → continent set. No network needed.
+ *  Continents: Africa, Asia, Europe, North America, South America, Oceania
+ *  Central America & Caribbean map to North America.
+ *  tier: easy | medium | hard
+ */
+function flagEmoji(iso) {
+  return [...iso.toUpperCase()]
+    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
+    .join("");
+}
+
+const CONTINENTS = [
+  "Africa",
+  "Asia",
+  "Europe",
+  "North America",
+  "South America",
+  "Oceania",
+];
+
+/** Nearby / confusable continent pairs for harder distractors */
+const CONTINENT_NEIGHBORS = {
+  Africa: ["Asia", "Europe", "South America"],
+  Asia: ["Europe", "Africa", "Oceania"],
+  Europe: ["Asia", "Africa", "North America"],
+  "North America": ["South America", "Europe", "Oceania"],
+  "South America": ["North America", "Africa", "Oceania"],
+  Oceania: ["Asia", "North America", "South America"],
+};
+
+/** [name, iso, continent, tier] */
+const COUNTRY_SEED = [
+  // ——— Tourist (easy) ———
+  ["France", "FR", "Europe", "easy"],
+  ["Japan", "JP", "Asia", "easy"],
+  ["Brazil", "BR", "South America", "easy"],
+  ["India", "IN", "Asia", "easy"],
+  ["Egypt", "EG", "Africa", "easy"],
+  ["Canada", "CA", "North America", "easy"],
+  ["Australia", "AU", "Oceania", "easy"],
+  ["Italy", "IT", "Europe", "easy"],
+  ["Germany", "DE", "Europe", "easy"],
+  ["Spain", "ES", "Europe", "easy"],
+  ["Mexico", "MX", "North America", "easy"],
+  ["South Korea", "KR", "Asia", "easy"],
+  ["United Kingdom", "GB", "Europe", "easy"],
+  ["United States", "US", "North America", "easy"],
+  ["China", "CN", "Asia", "easy"],
+  ["Argentina", "AR", "South America", "easy"],
+  ["South Africa", "ZA", "Africa", "easy"],
+  ["Turkey", "TR", "Asia", "easy"],
+  ["Greece", "GR", "Europe", "easy"],
+  ["Sweden", "SE", "Europe", "easy"],
+  ["Norway", "NO", "Europe", "easy"],
+  ["Netherlands", "NL", "Europe", "easy"],
+  ["Portugal", "PT", "Europe", "easy"],
+  ["Russia", "RU", "Europe", "easy"],
+  ["Ireland", "IE", "Europe", "easy"],
+  ["Switzerland", "CH", "Europe", "easy"],
+  ["Thailand", "TH", "Asia", "easy"],
+  ["New Zealand", "NZ", "Oceania", "easy"],
+  ["Poland", "PL", "Europe", "easy"],
+  ["Belgium", "BE", "Europe", "easy"],
+  ["Denmark", "DK", "Europe", "easy"],
+  ["Cuba", "CU", "North America", "easy"],
+  ["Kenya", "KE", "Africa", "easy"],
+  ["Nigeria", "NG", "Africa", "easy"],
+  ["Morocco", "MA", "Africa", "easy"],
+  ["Chile", "CL", "South America", "easy"],
+  ["Peru", "PE", "South America", "easy"],
+  ["Colombia", "CO", "South America", "easy"],
+  ["Saudi Arabia", "SA", "Asia", "easy"],
+  ["Indonesia", "ID", "Asia", "easy"],
+
+  // ——— Globetrotter (medium) ———
+  ["Austria", "AT", "Europe", "medium"],
+  ["Finland", "FI", "Europe", "medium"],
+  ["Vietnam", "VN", "Asia", "medium"],
+  ["Malaysia", "MY", "Asia", "medium"],
+  ["Philippines", "PH", "Asia", "medium"],
+  ["United Arab Emirates", "AE", "Asia", "medium"],
+  ["Ukraine", "UA", "Europe", "medium"],
+  ["Czech Republic", "CZ", "Europe", "medium"],
+  ["Hungary", "HU", "Europe", "medium"],
+  ["Israel", "IL", "Asia", "medium"],
+  ["Singapore", "SG", "Asia", "medium"],
+  ["Iceland", "IS", "Europe", "medium"],
+  ["Jamaica", "JM", "North America", "medium"],
+  ["Pakistan", "PK", "Asia", "medium"],
+  ["Bangladesh", "BD", "Asia", "medium"],
+  ["Romania", "RO", "Europe", "medium"],
+  ["Croatia", "HR", "Europe", "medium"],
+  ["Iran", "IR", "Asia", "medium"],
+  ["Iraq", "IQ", "Asia", "medium"],
+  ["Qatar", "QA", "Asia", "medium"],
+  ["Ethiopia", "ET", "Africa", "medium"],
+  ["Ghana", "GH", "Africa", "medium"],
+  ["Ecuador", "EC", "South America", "medium"],
+  ["Venezuela", "VE", "South America", "medium"],
+  ["Uruguay", "UY", "South America", "medium"],
+  ["Costa Rica", "CR", "North America", "medium"],
+  ["Panama", "PA", "North America", "medium"],
+  ["Dominican Republic", "DO", "North America", "medium"],
+  ["Nepal", "NP", "Asia", "medium"],
+  ["Tanzania", "TZ", "Africa", "medium"],
+  ["Algeria", "DZ", "Africa", "medium"],
+  ["Tunisia", "TN", "Africa", "medium"],
+  ["Bolivia", "BO", "South America", "medium"],
+  ["Paraguay", "PY", "South America", "medium"],
+  ["Guatemala", "GT", "North America", "medium"],
+  ["Fiji", "FJ", "Oceania", "medium"],
+  ["Papua New Guinea", "PG", "Oceania", "medium"],
+  ["Kazakhstan", "KZ", "Asia", "medium"],
+  ["Mongolia", "MN", "Asia", "medium"],
+  ["Cambodia", "KH", "Asia", "medium"],
+  ["Serbia", "RS", "Europe", "medium"],
+  ["Bulgaria", "BG", "Europe", "medium"],
+  ["Slovakia", "SK", "Europe", "medium"],
+  ["Lithuania", "LT", "Europe", "medium"],
+  ["Latvia", "LV", "Europe", "medium"],
+  ["Estonia", "EE", "Europe", "medium"],
+
+  // ——— Cartographer (hard) ———
+  ["Chad", "TD", "Africa", "hard"],
+  ["Mali", "ML", "Africa", "hard"],
+  ["Guinea", "GN", "Africa", "hard"],
+  ["Côte d'Ivoire", "CI", "Africa", "hard"],
+  ["Cameroon", "CM", "Africa", "hard"],
+  ["Senegal", "SN", "Africa", "hard"],
+  ["Moldova", "MD", "Europe", "hard"],
+  ["Luxembourg", "LU", "Europe", "hard"],
+  ["Monaco", "MC", "Europe", "hard"],
+  ["Slovenia", "SI", "Europe", "hard"],
+  ["Armenia", "AM", "Asia", "hard"],
+  ["Azerbaijan", "AZ", "Asia", "hard"],
+  ["Georgia", "GE", "Asia", "hard"],
+  ["Jordan", "JO", "Asia", "hard"],
+  ["Kuwait", "KW", "Asia", "hard"],
+  ["Oman", "OM", "Asia", "hard"],
+  ["Yemen", "YE", "Asia", "hard"],
+  ["Syria", "SY", "Asia", "hard"],
+  ["Lebanon", "LB", "Asia", "hard"],
+  ["Bahrain", "BH", "Asia", "hard"],
+  ["Uzbekistan", "UZ", "Asia", "hard"],
+  ["Myanmar", "MM", "Asia", "hard"],
+  ["Laos", "LA", "Asia", "hard"],
+  ["Samoa", "WS", "Oceania", "hard"],
+  ["Honduras", "HN", "North America", "hard"],
+  ["El Salvador", "SV", "North America", "hard"],
+  ["Nicaragua", "NI", "North America", "hard"],
+  ["Liberia", "LR", "Africa", "hard"],
+  ["Madagascar", "MG", "Africa", "hard"],
+  ["Mozambique", "MZ", "Africa", "hard"],
+  ["Angola", "AO", "Africa", "hard"],
+  ["Uganda", "UG", "Africa", "hard"],
+  ["Rwanda", "RW", "Africa", "hard"],
+  ["Zimbabwe", "ZW", "Africa", "hard"],
+  ["Zambia", "ZM", "Africa", "hard"],
+  ["Botswana", "BW", "Africa", "hard"],
+  ["Namibia", "NA", "Africa", "hard"],
+  ["Gabon", "GA", "Africa", "hard"],
+  ["Congo", "CG", "Africa", "hard"],
+  ["DR Congo", "CD", "Africa", "hard"],
+  ["Benin", "BJ", "Africa", "hard"],
+  ["Burkina Faso", "BF", "Africa", "hard"],
+  ["Niger", "NE", "Africa", "hard"],
+  ["Togo", "TG", "Africa", "hard"],
+  ["Sierra Leone", "SL", "Africa", "hard"],
+  ["Sudan", "SD", "Africa", "hard"],
+  ["Libya", "LY", "Africa", "hard"],
+  ["Mauritania", "MR", "Africa", "hard"],
+  ["Maldives", "MV", "Asia", "hard"],
+  ["Bhutan", "BT", "Asia", "hard"],
+  ["Brunei", "BN", "Asia", "hard"],
+  ["Cyprus", "CY", "Europe", "hard"],
+  ["Malta", "MT", "Europe", "hard"],
+  ["Albania", "AL", "Europe", "hard"],
+  ["North Macedonia", "MK", "Europe", "hard"],
+  ["Montenegro", "ME", "Europe", "hard"],
+  ["Bosnia and Herzegovina", "BA", "Europe", "hard"],
+  ["Belarus", "BY", "Europe", "hard"],
+  ["Sri Lanka", "LK", "Asia", "hard"],
+  ["Palau", "PW", "Oceania", "hard"],
+  ["Tuvalu", "TV", "Oceania", "hard"],
+  ["Solomon Islands", "SB", "Oceania", "hard"],
+  ["Vanuatu", "VU", "Oceania", "hard"],
+  ["North Korea", "KP", "Asia", "hard"],
+  ["Kyrgyzstan", "KG", "Asia", "hard"],
+  ["Tajikistan", "TJ", "Asia", "hard"],
+  ["Turkmenistan", "TM", "Asia", "hard"],
+  ["Haiti", "HT", "North America", "hard"],
+  ["Trinidad and Tobago", "TT", "North America", "hard"],
+  ["Bahamas", "BS", "North America", "hard"],
+  ["Barbados", "BB", "North America", "hard"],
+  ["Belize", "BZ", "North America", "hard"],
+  ["Guyana", "GY", "South America", "hard"],
+  ["Suriname", "SR", "South America", "hard"],
+  ["Cabo Verde", "CV", "Africa", "hard"],
+  ["Gambia", "GM", "Africa", "hard"],
+  ["Guinea-Bissau", "GW", "Africa", "hard"],
+  ["Malawi", "MW", "Africa", "hard"],
+  ["Mauritius", "MU", "Africa", "hard"],
+  ["Somalia", "SO", "Africa", "hard"],
+  ["Timor-Leste", "TL", "Asia", "hard"],
+  ["Tonga", "TO", "Oceania", "hard"],
+  ["Andorra", "AD", "Europe", "hard"],
+  ["Liechtenstein", "LI", "Europe", "hard"],
+  ["San Marino", "SM", "Europe", "hard"],
+  ["Djibouti", "DJ", "Africa", "hard"],
+  ["Eritrea", "ER", "Africa", "hard"],
+  ["Lesotho", "LS", "Africa", "hard"],
+  ["Eswatini", "SZ", "Africa", "hard"],
+  ["Comoros", "KM", "Africa", "hard"],
+  ["Seychelles", "SC", "Africa", "hard"],
+  ["Kiribati", "KI", "Oceania", "hard"],
+  ["Micronesia", "FM", "Oceania", "hard"],
+  ["Marshall Islands", "MH", "Oceania", "hard"],
+  ["Nauru", "NR", "Oceania", "hard"],
+];
+
+const COUNTRIES = COUNTRY_SEED.map(([name, iso, continent, tier]) => ({
+  name,
+  iso,
+  continent,
+  tier,
+  flag: flagEmoji(iso),
+}));
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function difficultyPool(level) {
+  if (level === "easy") return COUNTRIES.filter((c) => c.tier === "easy");
+  if (level === "medium") return COUNTRIES.filter((c) => c.tier === "easy" || c.tier === "medium");
+  if (level === "hard") return COUNTRIES.filter((c) => c.tier === "hard");
+  return COUNTRIES.slice();
+}
+
+function countriesOn(continent) {
+  return COUNTRIES.filter((c) => c.continent === continent);
+}
+
+function countriesNotOn(continent) {
+  return COUNTRIES.filter((c) => c.continent !== continent);
+}
+
+/**
+ * Pick 3 wrong continents for a country→continent question.
+ * Tourist: prefer distant continents.
+ * Globetrotter: mix.
+ * Cartographer: prefer neighboring / confusable continents.
+ */
+function pickContinentDistractors(correctContinent, difficulty, count) {
+  const others = CONTINENTS.filter((c) => c !== correctContinent);
+  const neighbors = CONTINENT_NEIGHBORS[correctContinent] || [];
+  const distant = others.filter((c) => !neighbors.includes(c));
+
+  let pool;
+  if (difficulty === "easy") {
+    pool = [...shuffle(distant), ...shuffle(neighbors)];
+  } else if (difficulty === "hard") {
+    pool = [...shuffle(neighbors), ...shuffle(distant)];
+  } else {
+    pool = shuffle(others);
+  }
+  return pool.slice(0, count);
+}
+
+/**
+ * Pick 3 wrong countries for a continent→country question.
+ * Never include another country that is actually on that continent.
+ * Tourist: prefer far continents + familiar names.
+ * Globetrotter: mix.
+ * Cartographer: prefer neighboring continents (confusable) + less familiar.
+ */
+function pickCountryDistractors(correct, difficulty, count) {
+  const wrong = countriesNotOn(correct.continent);
+  const neighbors = CONTINENT_NEIGHBORS[correct.continent] || [];
+
+  const scored = wrong.map((c) => {
+    let s = 0;
+    if (neighbors.includes(c.continent)) s += 3;
+    if (difficulty === "easy" && c.tier !== "hard") s += 1;
+    if (difficulty === "hard" && c.tier === "hard") s += 2;
+    if (difficulty === "hard" && neighbors.includes(c.continent)) s += 2;
+    if (difficulty === "easy" && !neighbors.includes(c.continent)) s += 2;
+    return { c, s };
+  });
+
+  const buckets =
+    difficulty === "easy"
+      ? [
+          (x) => x.s >= 3 && x.c.tier !== "hard",
+          (x) => !neighbors.includes(x.c.continent),
+          () => true,
+        ]
+      : difficulty === "hard"
+        ? [
+            (x) => neighbors.includes(x.c.continent) && x.c.tier === "hard",
+            (x) => neighbors.includes(x.c.continent),
+            (x) => x.c.tier === "hard",
+            () => true,
+          ]
+        : [
+            (x) => neighbors.includes(x.c.continent),
+            (x) => x.c.tier !== "hard",
+            () => true,
+          ];
+
+  const chosen = [];
+  const used = new Set();
+  buckets.forEach((pred) => {
+    if (chosen.length >= count) return;
+    shuffle(scored.filter((x) => pred(x) && !used.has(x.c.name))).forEach((x) => {
+      if (chosen.length >= count) return;
+      chosen.push(x.c);
+      used.add(x.c.name);
+    });
+  });
+  return chosen;
+}
