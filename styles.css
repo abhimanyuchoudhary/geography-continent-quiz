@@ -66,10 +66,11 @@ body {
   text-align: center;
   padding: 22px 8px 4px;
 }
-.hero-flags {
-  font-size: 2.6rem;
-  letter-spacing: 0.15em;
-  margin-bottom: 8px;
+.hero-mark {
+  width: 88px;
+  height: 88px;
+  display: block;
+  margin: 0 auto 8px;
 }
 h1 {
   margin: 0 0 8px;
@@ -106,18 +107,30 @@ h1 {
 .diff-option {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 8px 6px;
+  gap: 4px;
+  min-height: 108px;
+  padding: 10px 6px 8px;
   border: 2px solid #c5e4de;
   border-radius: 14px;
   background: #f3faf8;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.15;
   text-align: center;
   cursor: pointer;
+}
+.avatar {
+  width: 64px;
+  height: 64px;
+  display: block;
+  flex: none;
+}
+.avatar-sm {
+  width: 22px;
+  height: 22px;
 }
 .diff-option input {
   position: absolute;
@@ -253,7 +266,12 @@ h1 {
   font-weight: 700;
   font-size: 0.95rem;
 }
-.diff-pill { font-size: 0.85rem; }
+.diff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
 .diff-pill.easy { background: #dcfce7; color: #166534; }
 .diff-pill.medium { background: #fef3c7; color: #92400e; }
 .diff-pill.hard { background: #ffe4e6; color: #9f1239; }
@@ -408,7 +426,12 @@ h1 {
 .end-meta {
   margin: 12px 0 0;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
+.end-meta .avatar-sm { width: 28px; height: 28px; }
 .end-actions { display: flex; flex-direction: column; gap: 4px; }
 
 .review-list,
@@ -456,7 +479,12 @@ h1 {
   border-radius: 10px;
   padding: 6px 8px;
 }
-.lb-name { display: block; font-weight: 700; }
+.lb-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lb-name { font-weight: 700; }
 .lb-meta {
   display: block;
   color: var(--muted);
