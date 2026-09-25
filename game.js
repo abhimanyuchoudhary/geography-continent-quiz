@@ -6,19 +6,14 @@
   const LB_KEY = "gcq-leaderboard-v1";
   const LB_STORE = 20;
   const LB_SHOW = 10;
+  const SVG_NS = "http://www.w3.org/2000/svg";
 
   const DIFF_NAMES = { easy: "Tourist", medium: "Globetrotter", hard: "Cartographer" };
   const DIFF_HINTS = {
-    easy: "Well-known countries and clearer continent choices.",
-    medium: "Mixed familiarity and somewhat trickier choices.",
-    hard: "Less familiar countries and tougher continent distractors.",
+    easy: "Well-known countries, with other familiar names as choices.",
+    medium: "A mix of familiar countries and trickier choices.",
+    hard: "Less familiar countries. Choices are nearby countries that are easy to mix up.",
     random: "Picks Tourist, Globetrotter, or Cartographer once for the whole round.",
-  };
-
-  const MODE_LABELS = {
-    mix: "Mix both",
-    "country-to-continent": "Country → continent",
-    "continent-to-country": "Continent → country",
   };
 
   const $ = (id) => document.getElementById(id);
@@ -42,9 +37,10 @@
     hudDiff: $("hud-diff"),
     score: $("score"),
     streak: $("streak"),
-    qType: $("q-type"),
-    qPrompt: $("q-prompt"),
+    mapCaption: $("map-caption"),
+    map: $("map"),
     choices: $("choices"),
+    feedback: $("feedback"),
     endEmoji: $("end-emoji"),
     endMessage: $("end-message"),
     finalCorrect: $("final-correct"),
@@ -73,7 +69,6 @@
     autoTimer: null,
     pick: "easy",
     difficulty: "easy",
-    modeMix: "mix",
     requested: 10,
     saved: false,
     savedId: null,
@@ -88,24 +83,9 @@
     window.scrollTo(0, 0);
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (ch) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    }[ch]));
-  }
-
   function selectedPick() {
     const el = document.querySelector('input[name="difficulty"]:checked');
     return el ? el.value : "easy";
-  }
-
-  function selectedMode() {
-    const el = document.querySelector('input[name="mode-mix"]:checked');
-    return el ? el.value : "mix";
   }
 
   function diffLabel(level, viaRandom) {
@@ -118,11 +98,17 @@
     return shuffle(["easy", "medium", "hard"])[0];
   }
 
+  function hasShape(country) {
+    const cont = typeof MAPS !== "undefined" && MAPS[country.continent];
+    return Boolean(cont && cont.countries[country.iso]);
+  }
+
+  function poolFor(level) {
+    return difficultyPool(level).filter(hasShape);
+  }
+
   function syncDiffUI() {
     document.querySelectorAll('input[name="difficulty"]').forEach((input) => {
-      input.closest(".diff-option").classList.toggle("is-selected", input.checked);
-    });
-    document.querySelectorAll('input[name="mode-mix"]').forEach((input) => {
       input.closest(".diff-option").classList.toggle("is-selected", input.checked);
     });
     const pick = selectedPick();
@@ -133,9 +119,9 @@
   function updateLengthHint() {
     const pick = selectedPick();
     const requested = parseInt(els.roundLength.value, 10) || 10;
-    const easyN = difficultyPool("easy").length;
+    const easyN = poolFor("easy").length;
     if (pick !== "random") {
-      const poolN = difficultyPool(pick).length;
+      const poolN = poolFor(pick).length;
       if (requested > poolN) {
         els.lengthHint.hidden = false;
         els.lengthHint.textContent = `${DIFF_NAMES[pick]} has ${poolN} countries, so this round will be ${Math.min(poolN, MAX_QUESTIONS)} questions.`;
@@ -150,57 +136,161 @@
     els.lengthHint.textContent = "";
   }
 
-  function planTypes(n, modeMix) {
-    if (modeMix === "country-to-continent") {
-      return Array.from({ length: n }, () => "country-to-continent");
-    }
-    if (modeMix === "continent-to-country") {
-      return Array.from({ length: n }, () => "continent-to-country");
-    }
-    const types = [];
-    const half = Math.ceil(n / 2);
-    for (let i = 0; i < half; i++) types.push("country-to-continent");
-    for (let i = half; i < n; i++) types.push("continent-to-country");
-    return shuffle(types);
+  function pickDistractors(answer, difficulty, count) {
+    const same = poolFor("all").filter((c) => c.continent === answer.continent && c.iso !== answer.iso);
+    const near = new Set((typeof NEIGHBORS !== "undefined" && NEIGHBORS[answer.iso]) || []);
+    const isNear = (c) => near.has(c.iso);
+    const prefs =
+      difficulty === "easy"
+        ? [
+            (c) => c.tier === "easy" && !isNear(c),
+            (c) => c.tier === "easy",
+            (c) => c.tier === "medium" && !isNear(c),
+            (c) => c.tier !== "hard",
+            () => true,
+          ]
+        : difficulty === "hard"
+          ? [
+              (c) => isNear(c) && c.tier === "hard",
+              (c) => isNear(c),
+              (c) => c.tier === "hard",
+              () => true,
+            ]
+          : [
+              (c) => isNear(c) && c.tier === "medium",
+              (c) => c.tier === "medium",
+              (c) => isNear(c),
+              (c) => c.tier !== "hard",
+              () => true,
+            ];
+
+    const chosen = [];
+    const used = new Set();
+    prefs.forEach((pred) => {
+      if (chosen.length >= count) return;
+      shuffle(same.filter((c) => pred(c) && !used.has(c.iso))).forEach((c) => {
+        if (chosen.length >= count) return;
+        chosen.push(c);
+        used.add(c.iso);
+      });
+    });
+    return chosen;
   }
 
-  function makeQuestion(country, kind, difficulty) {
-    if (kind === "country-to-continent") {
-      const distractors = pickContinentDistractors(country.continent, difficulty, 3);
-      const options = shuffle([country.continent, ...distractors]);
-      const flag = country.flag ? ` ${country.flag}` : "";
-      return {
-        kind,
-        type: "continent",
-        promptHtml: `Which continent is<br><span class="country-name">${escapeHtml(country.name)}${flag}</span> on?`,
-        promptLabel: `Continent of ${country.name}${flag}`,
-        options,
-        optionLabels: options.slice(),
-        answer: country.continent,
-        answerLabel: country.continent,
-      };
+  function pickRoundCountries(level, n) {
+    const pool = poolFor(level);
+    if (level !== "medium") return shuffle(pool).slice(0, n);
+    const med = shuffle(pool.filter((c) => c.tier === "medium"));
+    const easy = shuffle(pool.filter((c) => c.tier === "easy"));
+    const nMed = Math.min(med.length, Math.round(n * 0.65));
+    const picked = med.slice(0, nMed);
+    const used = new Set(picked.map((c) => c.iso));
+    easy.forEach((c) => {
+      if (picked.length >= n || used.has(c.iso)) return;
+      picked.push(c);
+      used.add(c.iso);
+    });
+    if (picked.length < n) {
+      shuffle(pool).forEach((c) => {
+        if (picked.length >= n || used.has(c.iso)) return;
+        picked.push(c);
+        used.add(c.iso);
+      });
     }
+    return shuffle(picked).slice(0, n);
+  }
 
-    const distractors = pickCountryDistractors(country, difficulty, 3);
-    const optionCountries = shuffle([country, ...distractors]);
-    const options = optionCountries.map((c) => c.name);
-    const optionLabels = optionCountries.map((c) => (c.flag ? `${c.flag} ${c.name}` : c.name));
+  function makeQuestion(country, difficulty) {
+    const distractors = pickDistractors(country, difficulty, 3);
+    const options = shuffle([country, ...distractors]).map((c) => ({ iso: c.iso, name: c.name }));
     return {
-      kind,
-      type: "country",
-      promptHtml: `Which country is on<br><span class="continent-name">${escapeHtml(country.continent)}</span>?`,
-      promptLabel: `Country on ${country.continent}`,
+      iso: country.iso,
+      name: country.name,
+      continent: country.continent,
+      flag: country.flag,
       options,
-      optionLabels,
       answer: country.name,
       answerLabel: country.flag ? `${country.flag} ${country.name}` : country.name,
+      promptLabel: `Highlighted country in ${country.continent}`,
     };
   }
 
-  function buildQuestions(pool, n, difficulty, modeMix) {
-    const picked = shuffle(pool).slice(0, n);
-    const types = planTypes(n, modeMix);
-    return picked.map((country, i) => makeQuestion(country, types[i], difficulty));
+  function zoomView(map, shape) {
+    const [vx, vy, vw, vh] = map.view;
+    const [x, y, w, h] = shape.b;
+    const dominates = w / vw >= 0.4 || h / vh >= 0.4;
+    let viewW = vw;
+    let viewH = vh;
+    if (!dominates) {
+      const pad = 2.55;
+      viewW = w * pad;
+      viewH = h * pad;
+      // Keep the camera from becoming a thin ribbon around Chile-like or
+      // Gambia-like countries, so some neighboring coastline stays in frame.
+      const maxAspect = 1.85;
+      if (viewW / Math.max(viewH, 0.01) > maxAspect) viewH = viewW / maxAspect;
+      if (viewH / Math.max(viewW, 0.01) > maxAspect) viewW = viewH / maxAspect;
+      viewW = Math.min(Math.max(viewW, w * 1.35), vw);
+      viewH = Math.min(Math.max(viewH, h * 1.35), vh);
+    }
+    let x0 = x + w / 2 - viewW / 2;
+    let y0 = y + h / 2 - viewH / 2;
+    x0 = Math.max(vx, Math.min(x0, vx + vw - viewW));
+    y0 = Math.max(vy, Math.min(y0, vy + vh - viewH));
+    const zoomed = viewW < vw * 0.92 || viewH < vh * 0.92;
+    return { box: [x0, y0, viewW, viewH], zoomed };
+  }
+
+  function svgEl(name) {
+    return document.createElementNS(SVG_NS, name);
+  }
+
+  function renderMap(q) {
+    const map = MAPS[q.continent];
+    const shape = map.countries[q.iso];
+    const zoom = zoomView(map, shape);
+    const [x, y, w, h] = zoom.box;
+    const svg = els.map;
+    svg.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+    svg.replaceChildren();
+
+    const title = svgEl("title");
+    title.id = "map-title";
+    title.textContent = `Map of ${q.continent}. One country is highlighted.`;
+    svg.append(title);
+
+    const ocean = svgEl("rect");
+    ocean.setAttribute("class", "ocean");
+    ocean.setAttribute("x", String(x));
+    ocean.setAttribute("y", String(y));
+    ocean.setAttribute("width", String(w));
+    ocean.setAttribute("height", String(h));
+    svg.append(ocean);
+
+    const makePath = (iso, countryShape, highlighted) => {
+      const path = svgEl("path");
+      path.setAttribute("d", countryShape.d);
+      path.setAttribute("class", highlighted ? "country hi" : "country");
+      path.setAttribute("data-iso", iso);
+      path.setAttribute("vector-effect", "non-scaling-stroke");
+      path.setAttribute("fill-rule", "evenodd");
+      return path;
+    };
+
+    Object.entries(map.countries).forEach(([iso, countryShape]) => {
+      if (iso === q.iso) return;
+      svg.append(makePath(iso, countryShape, false));
+    });
+
+    const halo = svgEl("path");
+    halo.setAttribute("d", shape.d);
+    halo.setAttribute("class", "halo");
+    halo.setAttribute("vector-effect", "non-scaling-stroke");
+    halo.setAttribute("fill-rule", "evenodd");
+    svg.append(halo);
+    svg.append(makePath(q.iso, shape, true));
+
+    els.mapCaption.textContent = zoom.zoomed ? `${q.continent} · zoomed in` : q.continent;
   }
 
   function clearAuto() {
@@ -227,58 +317,59 @@
     clearAuto();
     state.answered = false;
     els.btnNext.hidden = true;
+    els.feedback.textContent = "";
+    els.feedback.className = "feedback";
 
     const q = state.questions[state.index];
     if (!q) return finishRound();
 
-    const isContinent = q.type === "continent";
-    els.qType.textContent = isContinent ? "Country → continent" : "Continent → country";
-    els.qType.classList.toggle("continent-q", isContinent);
-    els.qType.classList.toggle("country-q", !isContinent);
-    els.qPrompt.innerHTML = q.promptHtml;
-
-    els.choices.innerHTML = "";
-    q.options.forEach((opt, i) => {
+    renderMap(q);
+    els.choices.replaceChildren();
+    q.options.forEach((opt) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "choice";
-      btn.dataset.index = String(i);
-      btn.textContent = q.optionLabels[i] || opt;
-      btn.addEventListener("click", () => onAnswer(btn, opt, i));
-      els.choices.appendChild(btn);
+      btn.dataset.iso = opt.iso;
+      btn.textContent = opt.name;
+      btn.addEventListener("click", () => onAnswer(btn, opt));
+      els.choices.append(btn);
     });
 
     updateHud();
   }
 
-  function onAnswer(btn, value, optionIndex) {
+  function onAnswer(btn, opt) {
     if (state.answered) return;
     state.answered = true;
 
     const q = state.questions[state.index];
-    const isCorrect = value === q.answer;
-    q.picked = value;
-    q.pickedLabel = q.optionLabels[optionIndex] || value;
+    const isCorrect = opt.iso === q.iso;
+    q.picked = opt.name;
+    q.pickedLabel = opt.name;
     q.wasCorrect = isCorrect;
 
-    const buttons = [...els.choices.querySelectorAll(".choice")];
-    buttons.forEach((b) => {
+    els.choices.querySelectorAll(".choice").forEach((b) => {
       b.disabled = true;
-      const v = q.options[Number(b.dataset.index)];
-      if (v === q.answer) b.classList.add("correct");
+      if (b.dataset.iso === q.iso) b.classList.add("correct");
       else if (b === btn && !isCorrect) b.classList.add("wrong");
-      else if (v !== q.answer) b.classList.add("dim");
+      else b.classList.add("dim");
     });
 
     if (isCorrect) {
       state.correct += 1;
       state.streak += 1;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
+      els.feedback.textContent = "Correct!";
+      els.feedback.className = "feedback good";
     } else {
       state.streak = 0;
+      els.feedback.textContent = `It's ${q.name}.`;
+      els.feedback.className = "feedback bad";
     }
 
     updateHud();
+    const last = state.index >= state.questions.length - 1;
+    els.btnNext.textContent = last ? "See results" : "Next →";
     els.btnNext.hidden = false;
 
     state.autoTimer = setTimeout(() => {
@@ -299,7 +390,7 @@
   }
 
   function renderReview() {
-    els.reviewList.innerHTML = "";
+    els.reviewList.replaceChildren();
     state.questions.forEach((q) => {
       const li = document.createElement("li");
       li.className = `review-item ${q.wasCorrect ? "ok" : "bad"}`;
@@ -487,16 +578,16 @@
     const pct = total ? score / total : 0;
 
     let emoji = "🌟";
-    let msg = "Nice try — play again to beat your score!";
+    let msg = "Nice try — play again and the maps will stick!";
     if (pct === 1) {
       emoji = "🏆";
-      msg = "Perfect! Continent champion!";
+      msg = "Perfect! You know your maps!";
     } else if (pct >= 0.8) {
       emoji = "🎉";
       msg = "Awesome job!";
     } else if (pct >= 0.5) {
       emoji = "👍";
-      msg = "Good work — keep practicing!";
+      msg = "Good work — keep exploring!";
     }
 
     els.endEmoji.textContent = emoji;
@@ -504,8 +595,7 @@
     els.finalCorrect.textContent = String(score);
     els.finalTotal.textContent = String(total);
     els.finalStreak.textContent = String(state.bestStreak);
-    const modeBit = MODE_LABELS[state.modeMix] || "Mix both";
-    els.endMeta.textContent = `${diffLabel(state.difficulty, state.pick === "random")} · ${modeBit} · ${total} questions`;
+    els.endMeta.textContent = `${diffLabel(state.difficulty, state.pick === "random")} · ${total} questions`;
 
     if (state.requested > total) {
       els.endCapNote.hidden = false;
@@ -525,17 +615,15 @@
     clearAuto();
     const pick = selectedPick();
     const difficulty = resolveDifficulty(pick);
-    const modeMix = selectedMode();
     const requested = parseInt(els.roundLength.value, 10) || 10;
-    const pool = difficultyPool(difficulty);
+    const pool = poolFor(difficulty);
     const n = Math.min(requested, pool.length, MAX_QUESTIONS);
     if (n < 1) return;
 
     state.pick = pick;
     state.difficulty = difficulty;
-    state.modeMix = modeMix;
     state.requested = requested;
-    state.questions = buildQuestions(pool, n, difficulty, modeMix);
+    state.questions = pickRoundCountries(difficulty, n).map((country) => makeQuestion(country, difficulty));
     state.index = 0;
     state.correct = 0;
     state.streak = 0;
@@ -546,9 +634,6 @@
   }
 
   document.querySelectorAll('input[name="difficulty"]').forEach((input) => {
-    input.addEventListener("change", syncDiffUI);
-  });
-  document.querySelectorAll('input[name="mode-mix"]').forEach((input) => {
     input.addEventListener("change", syncDiffUI);
   });
   els.roundLength.addEventListener("change", updateLengthHint);
@@ -564,6 +649,11 @@
   els.playerName.addEventListener("input", () => {
     els.saveError.hidden = true;
   });
+
+  if (typeof MAPS === "undefined") {
+    els.btnPlay.disabled = true;
+    els.diffHint.textContent = "Map data did not load. Refresh and try again.";
+  }
 
   syncDiffUI();
   renderLeaderboards(null);

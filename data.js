@@ -1,32 +1,14 @@
-/** Embedded country → continent set. No network needed.
- *  Continents: Africa, Asia, Europe, North America, South America, Oceania
- *  Central America & Caribbean map to North America.
- *  tier: easy | medium | hard
+/** Country list for the map quiz. No network needed.
+ *  Continents: Africa, Asia, Europe, North America, South America, Oceania.
+ *  Central America and the Caribbean map to North America.
+ *  tier: easy (Tourist) | medium (Globetrotter) | hard (Cartographer)
+ *  Country shapes are bundled in maps.js.
  */
 function flagEmoji(iso) {
   return [...iso.toUpperCase()]
     .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
     .join("");
 }
-
-const CONTINENTS = [
-  "Africa",
-  "Asia",
-  "Europe",
-  "North America",
-  "South America",
-  "Oceania",
-];
-
-/** Nearby / confusable continent pairs for harder distractors */
-const CONTINENT_NEIGHBORS = {
-  Africa: ["Asia", "Europe", "South America"],
-  Asia: ["Europe", "Africa", "Oceania"],
-  Europe: ["Asia", "Africa", "North America"],
-  "North America": ["South America", "Europe", "Oceania"],
-  "South America": ["North America", "Africa", "Oceania"],
-  Oceania: ["Asia", "North America", "South America"],
-};
 
 /** [name, iso, continent, tier] */
 const COUNTRY_SEED = [
@@ -242,86 +224,3 @@ function difficultyPool(level) {
   return COUNTRIES.slice();
 }
 
-function countriesOn(continent) {
-  return COUNTRIES.filter((c) => c.continent === continent);
-}
-
-function countriesNotOn(continent) {
-  return COUNTRIES.filter((c) => c.continent !== continent);
-}
-
-/**
- * Pick 3 wrong continents for a country→continent question.
- * Tourist: prefer distant continents.
- * Globetrotter: mix.
- * Cartographer: prefer neighboring / confusable continents.
- */
-function pickContinentDistractors(correctContinent, difficulty, count) {
-  const others = CONTINENTS.filter((c) => c !== correctContinent);
-  const neighbors = CONTINENT_NEIGHBORS[correctContinent] || [];
-  const distant = others.filter((c) => !neighbors.includes(c));
-
-  let pool;
-  if (difficulty === "easy") {
-    pool = [...shuffle(distant), ...shuffle(neighbors)];
-  } else if (difficulty === "hard") {
-    pool = [...shuffle(neighbors), ...shuffle(distant)];
-  } else {
-    pool = shuffle(others);
-  }
-  return pool.slice(0, count);
-}
-
-/**
- * Pick 3 wrong countries for a continent→country question.
- * Never include another country that is actually on that continent.
- * Tourist: prefer far continents + familiar names.
- * Globetrotter: mix.
- * Cartographer: prefer neighboring continents (confusable) + less familiar.
- */
-function pickCountryDistractors(correct, difficulty, count) {
-  const wrong = countriesNotOn(correct.continent);
-  const neighbors = CONTINENT_NEIGHBORS[correct.continent] || [];
-
-  const scored = wrong.map((c) => {
-    let s = 0;
-    if (neighbors.includes(c.continent)) s += 3;
-    if (difficulty === "easy" && c.tier !== "hard") s += 1;
-    if (difficulty === "hard" && c.tier === "hard") s += 2;
-    if (difficulty === "hard" && neighbors.includes(c.continent)) s += 2;
-    if (difficulty === "easy" && !neighbors.includes(c.continent)) s += 2;
-    return { c, s };
-  });
-
-  const buckets =
-    difficulty === "easy"
-      ? [
-          (x) => x.s >= 3 && x.c.tier !== "hard",
-          (x) => !neighbors.includes(x.c.continent),
-          () => true,
-        ]
-      : difficulty === "hard"
-        ? [
-            (x) => neighbors.includes(x.c.continent) && x.c.tier === "hard",
-            (x) => neighbors.includes(x.c.continent),
-            (x) => x.c.tier === "hard",
-            () => true,
-          ]
-        : [
-            (x) => neighbors.includes(x.c.continent),
-            (x) => x.c.tier !== "hard",
-            () => true,
-          ];
-
-  const chosen = [];
-  const used = new Set();
-  buckets.forEach((pred) => {
-    if (chosen.length >= count) return;
-    shuffle(scored.filter((x) => pred(x) && !used.has(x.c.name))).forEach((x) => {
-      if (chosen.length >= count) return;
-      chosen.push(x.c);
-      used.add(x.c.name);
-    });
-  });
-  return chosen;
-}

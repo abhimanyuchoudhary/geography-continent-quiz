@@ -4,43 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2a9d8f" />
+  <meta name="description" content="A family geography quiz: a continent map highlights one country, and you pick its name." />
   <title>Continent Quiz</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
-    <!-- START -->
     <section id="screen-start" class="screen active">
       <div class="hero">
         <div class="hero-flags" aria-hidden="true">🌍 🗺️ 🧭</div>
         <h1>Continent Quiz</h1>
-        <p class="tagline">Match countries and continents — fun for the whole family!</p>
+        <p class="tagline">A country is highlighted on the map. Can you name it?</p>
       </div>
       <div class="how-to card">
         <h2>How to play</h2>
         <ol>
           <li>Choose a difficulty and a round length</li>
-          <li>Answer mixed questions: country → continent, and continent → country</li>
-          <li>Review your answers, then save a score on this device</li>
+          <li>Look at the map — one country is filled in</li>
+          <li>Pick its name from four choices</li>
+          <li>Review your round, then save a score on this device</li>
         </ol>
-        <p class="hint mode-note">Each round mixes both question types by default.</p>
-      </div>
-      <div class="card mode-picker">
-        <p id="mode-label" class="picker-label">Question mix</p>
-        <div class="diff-options" role="radiogroup" aria-labelledby="mode-label">
-          <label class="diff-option">
-            <input type="radio" name="mode-mix" value="mix" checked />
-            <span>Mix both</span>
-          </label>
-          <label class="diff-option">
-            <input type="radio" name="mode-mix" value="country-to-continent" />
-            <span>Country → continent</span>
-          </label>
-          <label class="diff-option">
-            <input type="radio" name="mode-mix" value="continent-to-country" />
-            <span>Continent → country</span>
-          </label>
-        </div>
       </div>
       <div class="card diff-picker">
         <p id="diff-label" class="picker-label">Difficulty</p>
@@ -62,7 +45,7 @@
             <span>Random</span>
           </label>
         </div>
-        <p id="diff-hint" class="hint">Well-known countries and clearer continent choices.</p>
+        <p id="diff-hint" class="hint">Well-known countries, with other familiar names as choices.</p>
       </div>
       <div class="round-picker card">
         <div class="round-row">
@@ -84,9 +67,9 @@
         <p class="hint">Saved on this device only.</p>
         <ol id="lb-start" class="lb-list"></ol>
       </section>
+      <p class="credit">Country shapes from Natural Earth, public domain. Maps are saved in this app and work offline.</p>
     </section>
 
-    <!-- QUESTION -->
     <section id="screen-question" class="screen" hidden>
       <header class="game-bar">
         <div class="progress-wrap">
@@ -99,15 +82,21 @@
           <span class="stat-pill">🔥 <span id="streak">0</span></span>
         </div>
       </header>
-      <div class="question-card card">
-        <p id="q-type" class="q-type">Continent</p>
-        <div id="q-prompt" class="q-prompt"></div>
+      <div class="map-card card">
+        <div class="map-head">
+          <p id="map-caption" class="map-caption">Map</p>
+          <p class="legend"><span class="swatch" aria-hidden="true"></span> Highlighted</p>
+        </div>
+        <div class="map-frame">
+          <svg id="map" role="img" aria-labelledby="map-title"></svg>
+        </div>
       </div>
-      <div id="choices" class="choices" role="group" aria-label="Answer choices"></div>
+      <h2 id="q-prompt" class="q-prompt">Which country is highlighted?</h2>
+      <div id="choices" class="choices" role="group" aria-labelledby="q-prompt"></div>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
       <button id="btn-next" type="button" class="btn btn-primary btn-lg" hidden>Next →</button>
     </section>
 
-    <!-- END -->
     <section id="screen-end" class="screen" hidden>
       <div class="end-hero card">
         <div id="end-emoji" class="end-emoji" aria-hidden="true">🎉</div>
@@ -124,7 +113,7 @@
         <h2>Save your score</h2>
         <label for="player-name">Display name</label>
         <p class="hint save-hint">Up to 20 characters. Stored on this device only.</p>
-        <input id="player-name" name="player-name" type="text" maxlength="40" autocomplete="nickname" autocapitalize="words" enterkeyhint="done" required />
+        <input id="player-name" name="player-name" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" enterkeyhint="done" required />
         <p id="save-error" class="hint error" hidden></p>
         <button id="btn-save" type="submit" class="btn btn-primary btn-lg">Save score</button>
       </form>
@@ -146,6 +135,7 @@
     </section>
   </div>
   <script src="data.js"></script>
+  <script src="maps.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

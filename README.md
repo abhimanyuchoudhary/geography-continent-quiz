@@ -1,36 +1,54 @@
 # Continent Quiz
 
-A mobile-first geography quiz: match countries to continents (and the reverse). Built for phones, kids, and family play — no login, no API keys.
+A mobile-first geography quiz for families. Each question shows a **map of one continent with exactly one country highlighted**. You answer “Which country is highlighted?” from four country names.
 
-## Play
+No login, no API keys, and no paid map tiles. Country shapes are bundled in the repo, so a round keeps working after the page has loaded — including offline.
 
-Run locally from this folder:
+## Play locally
+
+From this folder:
 
 ```bash
 python3 -m http.server 8766
 ```
 
-Then visit `http://127.0.0.1:8766/`.
+Then open `http://127.0.0.1:8766/`.
 
-(Port 8766 avoids clashing with Capital & Flag Quiz on 8765.)
+(Port 8766 avoids clashing with Capital & Flag Quiz on 8765. This repo does not change that other quiz.)
 
-## What's included
+GitHub Pages can host these static files as-is (`index.html`, `styles.css`, `game.js`, `data.js`, `maps.js`).
 
-- 170+ countries with flag emoji and a Tourist, Globetrotter, or Cartographer tier across Africa, Asia, Europe, North America, South America, and Oceania (Antarctica omitted; Central America / Caribbean map to North America)
-- Two question types in one app: **country → continent** and **continent → country** (exactly 4 multiple-choice options each). Default mix interleaves both; the start screen can lock to one type
-- Difficulty: Tourist, Globetrotter, Cartographer, or Random. Random picks one level for the whole round and shows it on the HUD and results
-- Tourist uses well-known countries and clearer continent distractors. Globetrotter mixes familiarity. Cartographer uses less familiar countries and tougher continent / neighboring-continent distractors
-- Round lengths: 5, 10, 15, 20, 40, or 50. A round is shortened if that difficulty does not have enough countries (shown on screen). Cartographer supports 50
-- Score and streak HUD; end-of-round review lists right/wrong, the correct answer, and your pick when wrong
-- **Leaderboard is localStorage on this device only**: display name (trimmed ≤20, HTML/controls stripped), score, difficulty label, round length, and date. No account and no server
+## How a round works
+
+- The map is one continent (Africa, Asia, Europe, North America, South America, or Oceania). Central America and the Caribbean are on the North America map.
+- One country uses a bright orange fill and a dark outline so it stays obvious on a phone. If that country is small, the map zooms in and the caption says “zoomed in”.
+- Four large name buttons. Tourist favors well-known countries and other familiar names. Globetrotter mixes familiarity. Cartographer uses less familiar countries and nearby, easy-to-confuse countries on the same continent.
+- **Random** picks Tourist, Globetrotter, or Cartographer once for the whole round and shows that level on the score bar and the results.
+- Round lengths: 5, 10, 15, 20, 40, or 50. If that difficulty does not have enough countries, the round is shortened (the screen says so). Cartographer has enough countries for 50.
+- Score and streak while you play. At the end, the review lists right or wrong, the correct country, and your pick when you missed.
+- **Leaderboard is localStorage on this device only.** Display name is trimmed to 20 characters, with HTML and control characters stripped. The board stores the score, difficulty, round length, and date. No account and no server.
+
+## Map data
+
+Shapes come from [Natural Earth](https://www.naturalearthdata.com/) 1:50m cultural vectors (admin-0 countries), which are public domain. `scripts/build_maps.py` simplifies them and writes `maps.js`. That file is already committed, so playing does not download a library or call a map service.
+
+To regenerate after editing the country list in `data.js`:
+
+```bash
+python3 scripts/build_maps.py
+```
+
+The script downloads the GeoJSON once into `scripts/.cache/` (gitignored). Very small overseas pieces are left off the continent view (for example Hawaii on the United States, Svalbard on Norway) so the highlighted country stays recognizable. Countries without a drawable shape are omitted from rounds; the current Natural Earth extract includes the full country list.
 
 ## Files
 
-- `index.html` — screens
-- `styles.css` — mobile-first UI
-- `game.js` — quiz flow, review, and leaderboard
-- `data.js` — country → continent data and difficulty pools
+- `index.html` — start, question, and results screens
+- `styles.css` — mobile-first layout
+- `game.js` — rounds, scoring, review, and leaderboard
+- `data.js` — country names, continents, and difficulty tiers
+- `maps.js` — bundled continent shapes and neighboring countries
+- `scripts/build_maps.py` — optional rebuild of `maps.js`
 
 ## License
 
-For personal / family use. No secrets in this repo.
+For personal and family use. Map shapes are public-domain Natural Earth data. No secrets in this repo.
