@@ -12,7 +12,7 @@
   <div class="app">
     <section id="screen-start" class="screen active">
       <div class="hero">
-        <img class="hero-mark" src="assets/avatars/hero.svg" alt="" width="88" height="88" />
+        <div class="hero-flags" aria-hidden="true">🌍 🗺️ 🧭</div>
         <h1>Continent Quiz</h1>
         <p class="tagline">A country is highlighted on the map. Can you name it?</p>
       </div>
@@ -30,22 +30,18 @@
         <div class="diff-options" role="radiogroup" aria-labelledby="diff-label" aria-describedby="diff-hint">
           <label class="diff-option">
             <input type="radio" name="difficulty" value="easy" checked />
-            <img class="avatar" src="assets/avatars/tourist.svg" alt="" width="64" height="64" />
             <span>Tourist</span>
           </label>
           <label class="diff-option">
             <input type="radio" name="difficulty" value="medium" />
-            <img class="avatar" src="assets/avatars/globetrotter.svg" alt="" width="64" height="64" />
             <span>Globetrotter</span>
           </label>
           <label class="diff-option">
             <input type="radio" name="difficulty" value="hard" />
-            <img class="avatar" src="assets/avatars/cartographer.svg" alt="" width="64" height="64" />
             <span>Cartographer</span>
           </label>
           <label class="diff-option">
             <input type="radio" name="difficulty" value="random" />
-            <img class="avatar" src="assets/avatars/random.svg" alt="" width="64" height="64" />
             <span>Random</span>
           </label>
         </div>
@@ -81,10 +77,7 @@
         </div>
         <div class="stats">
           <span id="q-progress">1 / 10</span>
-          <span id="hud-diff" class="stat-pill diff-pill easy">
-            <img id="hud-avatar" class="avatar avatar-sm" src="assets/avatars/tourist.svg" alt="" width="22" height="22" />
-            <span id="hud-diff-label">Tourist</span>
-          </span>
+          <span id="hud-diff" class="stat-pill diff-pill">Tourist</span>
           <span class="stat-pill">⭐ <span id="score">0</span></span>
           <span class="stat-pill">🔥 <span id="streak">0</span></span>
         </div>
@@ -113,10 +106,7 @@
           You got <strong id="final-correct">0</strong> / <strong id="final-total">0</strong>
         </p>
         <p class="best-streak">Best streak: <strong id="final-streak">0</strong> 🔥</p>
-        <p id="end-meta" class="end-meta">
-          <img id="end-avatar" class="avatar avatar-sm" src="assets/avatars/tourist.svg" alt="" width="28" height="28" />
-          <span id="end-meta-text"></span>
-        </p>
+        <p id="end-meta" class="end-meta"></p>
         <p id="end-cap-note" class="hint" hidden></p>
       </div>
       <form id="save-form" class="card save-form">

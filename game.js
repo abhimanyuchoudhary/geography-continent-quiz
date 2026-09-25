@@ -9,12 +9,6 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
 
   const DIFF_NAMES = { easy: "Tourist", medium: "Globetrotter", hard: "Cartographer" };
-  const AVATARS = {
-    easy: "assets/avatars/tourist.svg",
-    medium: "assets/avatars/globetrotter.svg",
-    hard: "assets/avatars/cartographer.svg",
-    random: "assets/avatars/random.svg",
-  };
   const DIFF_HINTS = {
     easy: "Well-known countries, with other familiar names as choices.",
     medium: "A mix of familiar countries and trickier choices.",
@@ -41,8 +35,6 @@
     progressBar: $("progress-bar"),
     qProgress: $("q-progress"),
     hudDiff: $("hud-diff"),
-    hudAvatar: $("hud-avatar"),
-    hudDiffLabel: $("hud-diff-label"),
     score: $("score"),
     streak: $("streak"),
     mapCaption: $("map-caption"),
@@ -55,8 +47,6 @@
     finalTotal: $("final-total"),
     finalStreak: $("final-streak"),
     endMeta: $("end-meta"),
-    endAvatar: $("end-avatar"),
-    endMetaText: $("end-meta-text"),
     endCapNote: $("end-cap-note"),
     reviewList: $("review-list"),
     saveForm: $("save-form"),
@@ -101,10 +91,6 @@
   function diffLabel(level, viaRandom) {
     const name = DIFF_NAMES[level] || "Tourist";
     return viaRandom ? `${name} · Random` : name;
-  }
-
-  function avatarSrc(level) {
-    return AVATARS[level] || AVATARS.easy;
   }
 
   function resolveDifficulty(pick) {
@@ -320,8 +306,7 @@
     els.qProgress.textContent = `${cur} / ${total}`;
     els.score.textContent = String(state.correct);
     els.streak.textContent = String(state.streak);
-    els.hudDiffLabel.textContent = diffLabel(state.difficulty, state.pick === "random");
-    els.hudAvatar.src = avatarSrc(state.difficulty);
+    els.hudDiff.textContent = diffLabel(state.difficulty, state.pick === "random");
     els.hudDiff.classList.remove("easy", "medium", "hard");
     if (state.difficulty) els.hudDiff.classList.add(state.difficulty);
     const pct = total ? (state.index / total) * 100 : 0;
@@ -509,27 +494,15 @@
         li.className = "lb-item";
         if (highlightId && e.id === highlightId) li.classList.add("is-new");
 
-        const top = document.createElement("span");
-        top.className = "lb-top";
-
-        const face = document.createElement("img");
-        face.className = "avatar avatar-sm";
-        face.alt = "";
-        face.width = 22;
-        face.height = 22;
-        face.src = avatarSrc(e.difficulty);
-
         const name = document.createElement("span");
         name.className = "lb-name";
         name.textContent = sanitizeName(e.name) || "Player";
-
-        top.append(face, name);
 
         const meta = document.createElement("span");
         meta.className = "lb-meta";
         meta.textContent = scoreMeta(e);
 
-        li.append(top, meta);
+        li.append(name, meta);
         listEl.append(li);
       });
     }
@@ -622,8 +595,7 @@
     els.finalCorrect.textContent = String(score);
     els.finalTotal.textContent = String(total);
     els.finalStreak.textContent = String(state.bestStreak);
-    els.endMetaText.textContent = `${diffLabel(state.difficulty, state.pick === "random")} · ${total} questions`;
-    els.endAvatar.src = avatarSrc(state.difficulty);
+    els.endMeta.textContent = `${diffLabel(state.difficulty, state.pick === "random")} · ${total} questions`;
 
     if (state.requested > total) {
       els.endCapNote.hidden = false;
